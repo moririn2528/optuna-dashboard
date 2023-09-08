@@ -18,12 +18,15 @@ import {
 import UploadFileIcon from "@mui/icons-material/UploadFile"
 import DownloadIcon from "@mui/icons-material/Download"
 import DeleteIcon from "@mui/icons-material/Delete"
-import FullscreenIcon from "@mui/icons-material/Fullscreen"
 
 import { actionCreator } from "../action"
 import { useDeleteArtifactDialog } from "./DeleteArtifactDialog"
 import { useThreejsArtifactModal } from "./ThreejsArtifactViewer"
-import { ArtifactCardMedia } from "./ArtifactCardMedia"
+import {
+  ArtifactCardMedia,
+  getArtifactButtons,
+  ArtifactButtonId,
+} from "./ArtifactCardMedia"
 
 export const TrialArtifactCards: FC<{ trial: Trial }> = ({ trial }) => {
   const theme = useTheme()
@@ -46,6 +49,16 @@ export const TrialArtifactCards: FC<{ trial: Trial }> = ({ trial }) => {
       <Box sx={{ display: "flex", flexWrap: "wrap", p: theme.spacing(1, 0) }}>
         {trial.artifacts.map((artifact) => {
           const urlPath = `/artifacts/${trial.study_id}/${trial.trial_id}/${artifact.artifact_id}`
+          const artifactButtons = getArtifactButtons(
+            artifact,
+            trial,
+            (id: ArtifactButtonId) => {
+              if (id === "3dmodel") {
+                openThreejsArtifactModal(urlPath, artifact)
+              }
+            },
+            { margin: "auto 0" }
+          )
           return (
             <Card
               key={artifact.artifact_id}
@@ -72,25 +85,14 @@ export const TrialArtifactCards: FC<{ trial: Trial }> = ({ trial }) => {
                     p: theme.spacing(0.5, 0),
                     flexGrow: 1,
                     wordWrap: "break-word",
-                    maxWidth: `calc(100% - ${theme.spacing(8)})`,
+                    maxWidth: `calc(100% - ${theme.spacing(
+                      4 * artifactButtons.length
+                    )})`,
                   }}
                 >
                   {artifact.filename}
                 </Typography>
-                {artifact.filename.endsWith(".stl") ||
-                artifact.filename.endsWith(".3dm") ? (
-                  <IconButton
-                    aria-label="show artifact 3d model"
-                    size="small"
-                    color="inherit"
-                    sx={{ margin: "auto 0" }}
-                    onClick={() => {
-                      openThreejsArtifactModal(urlPath, artifact)
-                    }}
-                  >
-                    <FullscreenIcon />
-                  </IconButton>
-                ) : null}
+                {artifactButtons}
                 <IconButton
                   aria-label="delete artifact"
                   size="small"
