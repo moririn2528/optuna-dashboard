@@ -25,6 +25,9 @@ import ClearIcon from "@mui/icons-material/Clear"
 import SettingsIcon from "@mui/icons-material/Settings"
 import FullscreenIcon from "@mui/icons-material/Fullscreen"
 import red from "@mui/material/colors/red"
+import Modal from "@mui/material/Modal"
+import { red } from "@mui/material/colors"
+import UndoIcon from "@mui/icons-material/Undo"
 
 import { actionCreator } from "../action"
 import { TrialListDetail } from "./TrialList"
@@ -399,8 +402,10 @@ export const PreferentialTrials: FC<{ studyDetail: StudyDetail | null }> = ({
   studyDetail,
 }) => {
   const theme = useTheme()
+  const action = actionCreator()
   const [openThreejsArtifactModal, renderThreejsArtifactModal] =
     useThreejsArtifactModal()
+  const [undoHistoryId, setUndoHistoryId] = useState<string | null>(null)
   const [displayTrials, setDisplayTrials] = useState<DisplayTrials>({
     display: [],
     clicked: [],
@@ -414,8 +419,9 @@ export const PreferentialTrials: FC<{ studyDetail: StudyDetail | null }> = ({
 
   const hiddenTrials = new Set(
     studyDetail.preference_history
-      ?.map((p) => p.clicked)
-      .concat(studyDetail.skipped_trials) ?? []
+      ?.filter((h) => !h.is_removed)
+      .map((p) => p.clicked)
+      .concat(studyDetail.skipped_trial_numbers) ?? []
   )
   const activeTrials = studyDetail.trials.filter(
     (t) =>
@@ -468,34 +474,63 @@ export const PreferentialTrials: FC<{ studyDetail: StudyDetail | null }> = ({
       }
     })
   }
+  const latestHistoryId =
+    studyDetail?.preference_history?.filter((h) => !h.is_removed).pop()?.id ??
+    null
+  if (undoHistoryId !== null && undoHistoryId !== latestHistoryId) {
+    setUndoHistoryId(null)
+  }
 
   return (
     <Box
       padding={theme.spacing(2)}
       sx={{
         position: "relative",
+        marginBottom: theme.spacing(2),
       }}
     >
-      <IconButton
+      <Box
         sx={{
-          position: "absolute",
-          top: 0,
-          right: 0,
-          margin: theme.spacing(1),
-        }}
-        onClick={() => setSettingShown(true)}
-      >
-        <SettingsIcon />
-      </IconButton>
-      <Typography
-        variant="h4"
-        sx={{
-          marginBottom: theme.spacing(2),
-          fontWeight: theme.typography.fontWeightBold,
+          display: "flex",
+          flexDirection: "row",
+          flexWrap: "wrap",
+          justifyContent: "flex-end",
         }}
       >
-        Which trial is the worst?
-      </Typography>
+        <Typography
+          variant="h4"
+          sx={{
+            marginBottom: theme.spacing(2),
+            marginRight: "auto",
+            fontWeight: theme.typography.fontWeightBold,
+          }}
+        >
+          Which trial is the worst?
+        </Typography>
+        <IconButton
+          disabled={latestHistoryId === null || undoHistoryId !== null}
+          onClick={() => {
+            if (latestHistoryId === null) {
+              return
+            }
+            setUndoHistoryId(latestHistoryId)
+            action.removePreferentialHistory(studyDetail.id, latestHistoryId)
+          }}
+          sx={{
+            marginY: "auto",
+          }}
+        >
+          <UndoIcon />
+        </IconButton>
+        <IconButton
+          sx={{
+            marginY: "auto",
+          }}
+          onClick={() => setSettingShown(true)}
+        >
+          <SettingsIcon />
+        </IconButton>
+      </Box>
       <Box sx={{ display: "flex", flexDirection: "row", flexWrap: "wrap" }}>
         {displayTrials.display.map((t, index) => {
           const trial = activeTrials.find((trial) => trial.number === t)

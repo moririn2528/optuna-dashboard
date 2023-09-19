@@ -17,6 +17,8 @@ import {
   reportPreferenceAPI,
   skipPreferentialTrialAPI,
   reportFeedbackComponentAPI,
+  removePreferentialHistoryAPI,
+  restorePreferentialHistoryAPI,
 } from "./apiClient"
 import {
   graphVisibilityState,
@@ -622,12 +624,43 @@ export const actionCreator = () => {
       })
       .catch((err) => {
         const reason = err.response?.data.reason
-        enqueueSnackbar(
-          `Failed to report feedback component. Reason: ${reason}`,
-          {
-            variant: "error",
-          }
+        enqueueSnackbar(`Failed to switch history. Reason: ${reason}`, {
+          variant: "error",
+        })
+        console.log(err)
+      })
+  }
+  const removePreferentialHistory = (studyId: number, historyId: string) => {
+    removePreferentialHistoryAPI(studyId, historyId)
+      .then(() => {
+        const newStudy = Object.assign({}, studyDetails[studyId])
+        newStudy.preference_history = newStudy.preference_history?.map((h) =>
+          h.id === historyId ? { ...h, is_removed: true } : h
         )
+        setStudyDetailState(studyId, newStudy)
+      })
+      .catch((err) => {
+        const reason = err.response?.data.reason
+        enqueueSnackbar(`Failed to switch history. Reason: ${reason}`, {
+          variant: "error",
+        })
+        console.log(err)
+      })
+  }
+  const restorePreferentialHistory = (studyId: number, historyId: string) => {
+    restorePreferentialHistoryAPI(studyId, historyId)
+      .then(() => {
+        const newStudy = Object.assign({}, studyDetails[studyId])
+        newStudy.preference_history = newStudy.preference_history?.map((h) =>
+          h.id === historyId ? { ...h, is_removed: false } : h
+        )
+        setStudyDetailState(studyId, newStudy)
+      })
+      .catch((err) => {
+        const reason = err.response?.data.reason
+        enqueueSnackbar(`Failed to switch history. Reason: ${reason}`, {
+          variant: "error",
+        })
         console.log(err)
       })
   }
@@ -654,6 +687,8 @@ export const actionCreator = () => {
     updatePreference,
     skipPreferentialTrial,
     updateFeedbackComponent,
+    removePreferentialHistory,
+    restorePreferentialHistory,
   }
 }
 

@@ -10,6 +10,8 @@ import {
 import ClearIcon from "@mui/icons-material/Clear"
 import IconButton from "@mui/material/IconButton"
 import OpenInFullIcon from "@mui/icons-material/OpenInFull"
+import RestoreFromTrashIcon from "@mui/icons-material/RestoreFromTrash"
+import DeleteIcon from "@mui/icons-material/Delete"
 import Modal from "@mui/material/Modal"
 import { red } from "@mui/material/colors"
 
@@ -18,6 +20,7 @@ import { getArtifactUrlPath } from "./PreferentialTrials"
 import { formatDate } from "../dateUtil"
 import { useStudyDetailValue } from "../state"
 import { PreferentialOutputComponent } from "./PreferentialOutputComponent"
+import { actionCreator } from "../action"
 
 type TrialType = "worst" | "none"
 
@@ -157,32 +160,74 @@ const CandidateTrial: FC<{
   )
 }
 
-const ChoiceTrials: FC<{ choice: PreferenceHistory; trials: Trial[] }> = ({
-  choice,
-  trials,
-}) => {
+const ChoiceTrials: FC<{
+  choice: PreferenceHistory
+  trials: Trial[]
+  study_id: number
+}> = ({ choice, trials, study_id }) => {
+  const [isRemoved, setRemoved] = useState(choice.is_removed)
   const theme = useTheme()
   const worst_trials = new Set([choice.clicked])
+  const action = actionCreator()
 
   return (
     <Box
       sx={{
         marginBottom: theme.spacing(4),
+        position: "relative",
       }}
     >
-      <Typography
-        variant="h6"
-        sx={{
-          fontWeight: theme.typography.fontWeightLight,
-        }}
-      >
-        {formatDate(choice.timestamp)}
-      </Typography>
       <Box
         sx={{
           display: "flex",
           flexDirection: "row",
           flexWrap: "wrap",
+        }}
+      >
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: theme.typography.fontWeightLight,
+            margin: "auto 0",
+          }}
+        >
+          {formatDate(choice.timestamp)}
+        </Typography>
+        {choice.is_removed ? (
+          <IconButton
+            disabled={!isRemoved}
+            onClick={() => {
+              setRemoved(false)
+              action.restorePreferentialHistory(study_id, choice.id)
+            }}
+            sx={{
+              margin: `auto ${theme.spacing(2)}`,
+            }}
+          >
+            <RestoreFromTrashIcon />
+          </IconButton>
+        ) : (
+          <IconButton
+            disabled={isRemoved}
+            onClick={() => {
+              setRemoved(true)
+              action.removePreferentialHistory(study_id, choice.id)
+            }}
+            sx={{
+              margin: `auto ${theme.spacing(2)}`,
+            }}
+          >
+            <DeleteIcon />
+          </IconButton>
+        )}
+      </Box>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "row",
+          flexWrap: "wrap",
+          filter: choice.is_removed ? "brightness(0.4)" : undefined,
+          backgroundColor: theme.palette.background.paper,
         }}
       >
         {choice.candidates.map((trial_num, index) => (
@@ -234,6 +279,7 @@ export const PreferenceHistory: FC<{ studyDetail: StudyDetail | null }> = ({
           key={choice.id}
           choice={choice}
           trials={studyDetail.trials}
+          study_id={studyDetail.id}
         />
       ))}
     </Box>
